@@ -2,6 +2,14 @@
 
 Convert ECHO Single Form (ESF) XML files to Markdown or Word documents.
 
+## Web Interface
+
+Use the converter directly in your browser - no installation required:
+
+**[Launch Web App](https://brianmcdonald.github.io/esf-convert/)**
+
+The web app runs entirely client-side using WebAssembly. Your files are never uploaded to any server.
+
 ## Installation
 
 ```bash

@@ -1,6 +1,6 @@
 [project]
 name = "esf-convert"
-version = "1.0.0"
+version = "1.0.1"
 description = "Convert ECHO Single Form (ESF) XML files to Markdown or Word documents"
 readme = "README.md"
 license = "MIT"

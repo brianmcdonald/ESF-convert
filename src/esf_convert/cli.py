@@ -378,10 +378,21 @@ def build_ref_to_label_mapping(root: etree._Element) -> tuple[dict, dict]:
     return ref_to_label, ref_to_guideline
 
 
-def parse_esf_xml(xml_path: Path) -> dict:
+def parse_esf_xml(xml_source: Path | bytes) -> dict:
+    """Parse ESF XML from a file path or bytes.
+
+    Args:
+        xml_source: Either a Path to an XML file or XML content as bytes.
+
+    Returns:
+        Parsed data dictionary with metadata, labels, chapters, and results.
+    """
     parser = etree.XMLParser(recover=True, encoding='utf-8')
-    tree = etree.parse(str(xml_path), parser)
-    root = tree.getroot()
+    if isinstance(xml_source, bytes):
+        root = etree.fromstring(xml_source, parser)
+    else:
+        tree = etree.parse(str(xml_source), parser)
+        root = tree.getroot()
     
     # Build label lookup
     labels = {}
@@ -596,7 +607,7 @@ def generate_markdown(data: dict) -> str:
         
         # Process outcome indicators (section 7.2)
         if chapter.get('outcome_indicators'):
-            lines.append("### 7.2 Outcome Indicators")
+            lines.append("### 7.2. Outcome Indicators")
             lines.append("")
 
             for i, ind in enumerate(chapter['outcome_indicators'], 1):
@@ -624,7 +635,7 @@ def generate_markdown(data: dict) -> str:
 
         # Process results (section 7.3) - output after Chapter 7's content
         if chapter['name'] == 'chapter7' and data['results']:
-            lines.append("### 7.3 Results")
+            lines.append("### 7.3. Results")
             lines.append("")
 
             for i, result in enumerate(data['results'], 1):
@@ -679,7 +690,7 @@ def generate_markdown(data: dict) -> str:
             # Section 7.4 - Final Report on Results
             has_final_reports = any(r.get('final_report') for r in data['results'])
             if has_final_reports:
-                lines.append("### 7.4 Final Report on Results")
+                lines.append("### 7.4. Final Report on Results")
                 lines.append("")
 
                 for i, result in enumerate(data['results'], 1):
@@ -692,8 +703,17 @@ def generate_markdown(data: dict) -> str:
     return '\n'.join(lines)
 
 
-def generate_docx(data: dict, output_path: Path) -> None:
-    """Generate a Word document from parsed ESF data."""
+def generate_docx(data: dict, output_path: Path | None = None) -> bytes | None:
+    """Generate a Word document from parsed ESF data.
+
+    Args:
+        data: Parsed ESF data dictionary
+        output_path: Path to save the document. If None, returns bytes instead.
+
+    Returns:
+        None if output_path is provided, otherwise the document as bytes.
+    """
+    from io import BytesIO
     doc = Document()
     metadata = data['metadata']
 
@@ -773,7 +793,7 @@ def generate_docx(data: dict, output_path: Path) -> None:
 
         # Process outcome indicators (section 7.2)
         if chapter.get('outcome_indicators'):
-            doc.add_heading("7.2 Outcome Indicators", 2)
+            doc.add_heading("7.2. Outcome Indicators", 2)
 
             for i, ind in enumerate(chapter['outcome_indicators'], 1):
                 doc.add_heading(f"Outcome Indicator {i}", 3)
@@ -815,7 +835,7 @@ def generate_docx(data: dict, output_path: Path) -> None:
 
         # Process results (section 7.3) - output after Chapter 7's content
         if chapter['name'] == 'chapter7' and data['results']:
-            doc.add_heading("7.3 Results", 2)
+            doc.add_heading("7.3. Results", 2)
 
             for i, result in enumerate(data['results'], 1):
                 doc.add_heading(f"Result {i}: {result['title']}", 3)
@@ -870,14 +890,20 @@ def generate_docx(data: dict, output_path: Path) -> None:
             # Section 7.4 - Final Report on Results
             has_final_reports = any(r.get('final_report') for r in data['results'])
             if has_final_reports:
-                doc.add_heading("7.4 Final Report on Results", 2)
+                doc.add_heading("7.4. Final Report on Results", 2)
 
                 for i, result in enumerate(data['results'], 1):
                     if result.get('final_report'):
                         doc.add_heading(f"Result {i}: {result['title']}", 3)
                         doc.add_paragraph(result['final_report'])
 
-    doc.save(str(output_path))
+    if output_path:
+        doc.save(str(output_path))
+        return None
+    else:
+        buffer = BytesIO()
+        doc.save(buffer)
+        return buffer.getvalue()
 
 
 def main():
